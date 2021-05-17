@@ -1,0 +1,32 @@
+[package]
+name = "wmemchr"
+version = "0.0.0"
+authors = ["James Whaley <juicy66173@gmail.com>"]
+description = "Safe generic alternative to wmemchr."
+edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+repository = "https://github.com/Juici/wmemchr"
+documentation = "https://docs.rs/wmemchr"
+
+[lib]
+name = "wmemchr"
+bench = false
+
+[workspace]
+members = ["bench"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+packed_simd = { version = "0.3.4", package = "packed_simd_2" }
+
+[dev-dependencies]
+wchar = "0.10"
+
+[profile.test]
+opt-level = 3
+debug = 2

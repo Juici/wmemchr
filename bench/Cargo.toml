@@ -1,0 +1,24 @@
+[package]
+name = "wmemchr-bench"
+version = "0.0.0"
+authors = ["James Whaley <juicy66173@gmail.com>"]
+description = "Criterion benchmark suite for wmemchr."
+edition = "2018"
+license = "MIT OR Apache-2.0"
+publish = false
+
+repository = "https://github.com/Juici/wmemchr"
+documentation = "https://docs.rs/wmemchr"
+
+[lib]
+bench = false
+
+[[bench]]
+name = "wmemchr"
+harness = false
+path = "src/bench.rs"
+
+[dependencies]
+criterion = "0.3.4"
+wchar = { version = "0.10", features = ["unstable"] }
+wmemchr = { path = ".." }
