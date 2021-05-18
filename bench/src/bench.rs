@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use criterion::{criterion_group, criterion_main, Bencher, Criterion, Throughput};
 
 mod count;
@@ -23,9 +21,7 @@ fn define(
     let bench_name = iter.next().unwrap();
     c.benchmark_group(group_name)
         .throughput(Throughput::Elements(len as u64))
-        .sample_size(10)
-        .warm_up_time(Duration::from_millis(500))
-        .measurement_time(Duration::from_secs(2))
+        .sample_size(20)
         .bench_function(bench_name, bench);
 }
 

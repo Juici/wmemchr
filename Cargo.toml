@@ -21,9 +21,6 @@ members = ["bench"]
 default = ["std"]
 std = []
 
-[dependencies]
-packed_simd = { version = "0.3.4", package = "packed_simd_2" }
-
 [dev-dependencies]
 wchar = "0.10"
 

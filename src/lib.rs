@@ -4,6 +4,5 @@ mod char;
 
 pub mod naive;
 pub mod fallback;
-pub mod simd;
 
 pub use crate::char::Wide;

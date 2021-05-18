@@ -25,10 +25,7 @@ pub fn all(c: &mut Criterion) {
             });
         };
     }
-    def!("simd", count::simd);
-    def!("fallback/packed", count::fallback_packed);
-    def!("fallback/unrolled", count::fallback_unrolled);
-    def!("fallback/unrolled2", count::fallback_unrolled2);
+    def!("fallback", count::fallback);
     def!("naive", count::naive);
 }
 
