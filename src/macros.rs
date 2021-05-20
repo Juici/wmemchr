@@ -1,3 +1,13 @@
+/// Assert a condition at compile time.
+macro_rules! static_assert {
+    ($cond:expr) => {
+        const _: [(); 0 - !{
+            const COND: bool = $cond;
+            COND
+        } as usize] = [];
+    };
+}
+
 /// Search forward for the first set bit, in a non-zero bitmask.
 #[rustversion::since(1.53)]
 macro_rules! bsf {

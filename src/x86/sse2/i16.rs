@@ -9,6 +9,8 @@ const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
 // 64 byte loop.
 const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
 
+static_assert!(LOOP_SIZE * mem::size_of::<i16>() == 64);
+
 #[target_feature(enable = "sse2")]
 pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<usize> {
     let start = haystack;
@@ -89,7 +91,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
             }
             offset += VECTOR_SIZE;
 
-            let mask = _mm_movemask_epi8(eq_c);
+            let mask = _mm_movemask_epi8(eq_d);
             debug_assert_ne!(mask, 0);
             let mask = NonZeroI32::new_unchecked(mask);
             return Some(offset + forward_pos(mask));
