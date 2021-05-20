@@ -5,5 +5,5 @@ mod arch {
     pub use core::arch::x86_64::*;
 }
 
-mod avx;
+mod avx2;
 mod sse2;
