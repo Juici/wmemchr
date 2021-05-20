@@ -21,6 +21,9 @@ members = ["bench"]
 default = ["std"]
 std = []
 
+[dependencies]
+rustversion = "1.0"
+
 [dev-dependencies]
 wchar = "0.10"
 

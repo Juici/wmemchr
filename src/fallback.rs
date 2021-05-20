@@ -36,15 +36,16 @@ pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
             return forward_search(start, end, ptr, confirm);
         }
 
+        debug_assert!(start <= end.sub(T::LANES));
+
         let chunk = (ptr as *const Packed).read_unaligned();
         if (chunk ^ v_needle).contains_zero::<T>() {
             return forward_search(start, end, ptr, confirm);
         }
 
-        ptr = ptr.add(T::LANES - (start as usize & align));
+        ptr = ptr.add(T::LANES - ((start as usize) & align));
 
-        debug_assert!(ptr > start);
-        debug_assert!(end.sub(T::LANES) >= start);
+        debug_assert!(start <= ptr);
 
         while ptr < end.sub(T::LANES) {
             debug_assert_eq!(0, (ptr as usize) % T::LANES);
