@@ -2,7 +2,6 @@ use core::mem;
 use core::num::NonZeroI32;
 
 use crate::x86::arch::*;
-use crate::x86::sse2;
 use crate::x86::sse2::i16::forward_pos;
 
 const VECTOR_SIZE: usize = mem::size_of::<__m256i>() / mem::size_of::<i16>();
@@ -10,20 +9,25 @@ const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
 
 const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
 
+const SMALL_VECTOR_SIZE: usize = mem::size_of::<__m128i>() / mem::size_of::<i16>();
+const SMALL_VECTOR_ALIGN: usize = SMALL_VECTOR_SIZE - 1;
+
 #[target_feature(enable = "avx2")]
 pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<usize> {
-    // If haystack length is less than number of elements in a packed vector,
-    // then defer to the SSE2 implementation.
-    if len < VECTOR_SIZE {
-        return sse2::i16::wmemchr(needle, haystack, len);
-    }
-
     let start = haystack;
     let end = haystack.add(len);
-    let mut ptr = start;
 
     debug_assert!(start < end);
+
+    // If haystack length is less than number of elements in a packed vector,
+    // then try with a smaller vector.
+    if len < VECTOR_SIZE {
+        return wmemchr_small(needle, start, end, len);
+    }
+
     debug_assert!(start <= end.sub(VECTOR_SIZE));
+
+    let mut ptr = start;
 
     // Broadcast the needle across the elements of the vector.
     let v_needle = _mm256_set1_epi16(needle);
@@ -111,7 +115,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 
     // Invariant: `0 <= end - ptr < VECTOR_SIZE`.
 
-    // We can search the remaining elements by shifting `ptr` back an doing an
+    // We can search the remaining elements by shifting `ptr` back and doing an
     // unaligned forward search.
 
     if ptr < end {
@@ -142,6 +146,80 @@ unsafe fn forward_search_unaligned(
     let eq = _mm256_cmpeq_epi16(chunk, v_needle);
 
     let mask = _mm256_movemask_epi8(eq);
+    if let Some(mask) = NonZeroI32::new(mask) {
+        let offset = ptr.offset_from(start) as usize;
+        Some(offset + forward_pos(mask))
+    } else {
+        None
+    }
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
+unsafe fn wmemchr_small(
+    needle: i16,
+    start: *const i16,
+    end: *const i16,
+    len: usize,
+) -> Option<usize> {
+    let mut ptr = start;
+
+    // If haystack length is less than the number of elements in a smaller
+    // packed vector, then just fallback to by element search.
+    if len < SMALL_VECTOR_SIZE {
+        while ptr < end {
+            if *ptr == needle {
+                return Some(ptr.offset_from(start) as usize);
+            }
+            ptr = ptr.add(1);
+        }
+        return None;
+    }
+
+    debug_assert!(start <= end.sub(SMALL_VECTOR_SIZE));
+
+    // Broadcast the needle across the elements of the vector.
+    let v_needle = _mm_set1_epi16(needle);
+
+    // Search the first small vector
+    if let Some(pos) = forward_search_unaligned_small(start, end, ptr, v_needle) {
+        return Some(pos);
+    }
+    ptr = ptr.add(SMALL_VECTOR_SIZE);
+
+    // Invariant: `0 <= end - ptr < VECTOR_SIZE`.
+
+    // We can search the remaining elements by shifting `ptr` back and doing an
+    // unaligned forward search.
+
+    if ptr < end {
+        let remaining = end.offset_from(start) as usize;
+
+        debug_assert!(remaining < SMALL_VECTOR_SIZE);
+        ptr = ptr.sub(SMALL_VECTOR_SIZE - remaining);
+        debug_assert_eq!(end.offset_from(start) as usize, SMALL_VECTOR_SIZE);
+
+        return forward_search_unaligned_small(start, end, ptr, v_needle);
+    }
+
+    None
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
+unsafe fn forward_search_unaligned_small(
+    start: *const i16,
+    end: *const i16,
+    ptr: *const i16,
+    v_needle: __m128i,
+) -> Option<usize> {
+    debug_assert!(start <= ptr);
+    debug_assert!(ptr <= end.sub(SMALL_VECTOR_SIZE));
+
+    let chunk = _mm_loadu_si128(ptr as *const __m128i);
+    let eq = _mm_cmpeq_epi16(chunk, v_needle);
+
+    let mask = _mm_movemask_epi8(eq);
     if let Some(mask) = NonZeroI32::new(mask) {
         let offset = ptr.offset_from(start) as usize;
         Some(offset + forward_pos(mask))

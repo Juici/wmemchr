@@ -10,6 +10,8 @@ readme = "README.md"
 repository = "https://github.com/Juici/wmemchr"
 documentation = "https://docs.rs/wmemchr"
 
+build = "build.rs"
+
 [lib]
 name = "wmemchr"
 bench = false
@@ -20,12 +22,16 @@ members = ["bench"]
 [features]
 default = ["std"]
 std = []
+unstable = []
 
 [dependencies]
-rustversion = "1.0"
+cfg-if = "1.0"
 
 [dev-dependencies]
 wchar = "0.10"
+
+[build-dependencies]
+autocfg = "1.0"
 
 [profile.test]
 opt-level = 3
