@@ -1,4 +1,6 @@
 mod avx2;
+#[cfg(feature = "unstable")]
+mod evex;
 mod sse2;
 
 macro_rules! unsafe_ifuncs {
@@ -26,12 +28,23 @@ macro_rules! unsafe_ifuncs {
             static FN: AtomicPtr<()> = AtomicPtr::new(detect as FnRaw);
 
             fn detect($($arg: $arg_ty),*) $(-> $ret_ty)? {
-                let f = if is_x86_feature_detected!("avx2") {
-                    super::avx2::$ty::$name as FnRaw
-                } else {
-                    // SSE2 is supported for all for x86_64 processors.
-                    super::sse2::$ty::$name as FnRaw
-                };
+                #[inline(always)]
+                fn select() -> FnRaw {
+                    if is_x86_feature_detected!("avx2") {
+                        #[cfg(feature = "unstable")]
+                        {
+                            if is_x86_feature_detected!("avx512vl") && is_x86_feature_detected!("avx512bw") {
+                                return super::evex::$ty::$name as FnRaw;
+                            }
+                        }
+
+                        super::avx2::$ty::$name as FnRaw
+                    } else {
+                        // SSE2 is supported for all for x86_64 processors.
+                        super::sse2::$ty::$name as FnRaw
+                    }
+                }
+                let f = select();
 
                 FN.store(f, Ordering::Relaxed);
 
