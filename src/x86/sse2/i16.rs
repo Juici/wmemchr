@@ -118,7 +118,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 
     // Invariant: `0 <= end - ptr < VECTOR_SIZE`.
 
-    // We can search the remaining elements by shifting `ptr` back an doing an
+    // We can search the remaining elements by shifting `ptr` back and doing an
     // unaligned forward search.
 
     if ptr < end {
