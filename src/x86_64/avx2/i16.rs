@@ -1,8 +1,8 @@
+use core::arch::x86_64::*;
 use core::mem;
 use core::num::NonZeroI32;
 
-use crate::x86::arch::*;
-use crate::x86::sse2::i16::forward_pos;
+use crate::x86_64::sse2::i16::forward_pos;
 
 const VECTOR_SIZE: usize = mem::size_of::<__m256i>() / mem::size_of::<i16>();
 const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;

@@ -1,10 +1,3 @@
-mod arch {
-    #[cfg(target_arch = "x86")]
-    pub use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    pub use core::arch::x86_64::*;
-}
-
 mod avx2;
 mod sse2;
 
@@ -36,7 +29,7 @@ macro_rules! unsafe_ifuncs {
                 let f = if is_x86_feature_detected!("avx2") {
                     super::avx2::$ty::$name as FnRaw
                 } else {
-                    // SSE2 support is assumed for x86 processors.
+                    // SSE2 is supported for all for x86_64 processors.
                     super::sse2::$ty::$name as FnRaw
                 };
 
