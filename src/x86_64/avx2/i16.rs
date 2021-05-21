@@ -123,7 +123,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 
         debug_assert!(remaining < VECTOR_SIZE);
         ptr = ptr.sub(VECTOR_SIZE - remaining);
-        debug_assert_eq!(end.offset_from(start) as usize, VECTOR_SIZE);
+        debug_assert_eq!(end.offset_from(ptr) as usize, VECTOR_SIZE);
 
         return forward_search_unaligned(start, end, ptr, v_needle);
     }
@@ -193,11 +193,11 @@ unsafe fn wmemchr_small(
     // unaligned forward search.
 
     if ptr < end {
-        let remaining = end.offset_from(start) as usize;
+        let remaining = len - SMALL_VECTOR_SIZE;
 
         debug_assert!(remaining < SMALL_VECTOR_SIZE);
         ptr = ptr.sub(SMALL_VECTOR_SIZE - remaining);
-        debug_assert_eq!(end.offset_from(start) as usize, SMALL_VECTOR_SIZE);
+        debug_assert_eq!(end.offset_from(ptr) as usize, SMALL_VECTOR_SIZE);
 
         return forward_search_unaligned_small(start, end, ptr, v_needle);
     }
