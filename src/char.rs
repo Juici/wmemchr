@@ -1,7 +1,7 @@
 use core::mem;
 
 mod private {
-    pub trait Seal<T = ()> {}
+    pub trait Sealed {}
 }
 
 /// A trait for types that have a constant size known at compile time.
@@ -14,7 +14,22 @@ pub trait Sized: core::marker::Sized {
 
 impl<T: core::marker::Sized> Sized for T {}
 
-pub type Packed = u128;
+// TODO: Specialise each wide character type for different pointer widths.
+cfg_if::cfg_if! {
+    if #[cfg(any(target_pointer_width = "8", target_pointer_width = "16"))] {
+        // If usize is less than 32 bits, use a u32.
+        type _Packed = u32;
+        type _NonZeroPacked = core::num::NonZeroU32;
+    } else {
+        type _Packed = usize;
+        type _NonZeroPacked = core::num::NonZeroUsize;
+    }
+}
+
+/// An integer holding a packed vector of wide characters.
+pub type Packed = _Packed;
+/// An non-zero bitmask the same size as [`Packed`].
+pub type NonZeroPacked = _NonZeroPacked;
 
 /// A trait for types that can be packed into a [`Packed`].
 pub trait Pack: Sized {
@@ -44,30 +59,8 @@ macro_rules! impl_pack {
         }
 
         impl Pack for $uty {
-            // Avoid hardcoding these constants, in the case we change the size
-            // of the packed representation.
-            const LO: Packed = {
-                let lo = 1;
-
-                let mut res = lo;
-                let mut i = 0;
-                while i < <Self as Pack>::LANES {
-                    res = (res << <Self as Sized>::BITS) | lo;
-                    i += 1;
-                }
-                res
-            };
-            const HI: Packed = {
-                let hi = 1;
-
-                let mut res = hi;
-                let mut i = 0;
-                while i < <Self as Pack>::LANES {
-                    res = (res << <Self as Sized>::BITS) | hi;
-                    i += 1;
-                }
-                res
-            };
+            const LO: Packed = Packed::MAX / (<$uty>::MAX as Packed);
+            const HI: Packed = <$uty as Pack>::LO << (<$uty as Sized>::BITS - 1);
 
             #[inline(always)]
             fn broadcast(self) -> Packed {
@@ -80,26 +73,20 @@ impl_pack!(i16, u16);
 impl_pack!(i32, u32);
 
 /// A trait for wide character types.
-pub trait Wide: private::Seal + Pack + Copy + Eq + 'static {}
+pub trait Wide: private::Sealed + Pack + Copy + Eq + 'static {}
 
 macro_rules! impl_wide {
     ($($ty:ty),*) => {
         $(
             impl Wide for $ty {}
-            impl private::Seal for $ty {}
+            impl private::Sealed for $ty {}
         )*
     };
 }
 impl_wide!(u16, u32, i16, i32);
 
-pub(crate) trait PackedWide: Sized {
-    /// Returns true if one of the elements in the packed representation is zero.
-    fn contains_zero<T: Wide>(self) -> bool;
-}
-
-impl PackedWide for Packed {
-    #[inline(always)]
-    fn contains_zero<T: Wide>(self) -> bool {
-        (self.wrapping_sub(<T as Pack>::LO) & !self & <T as Pack>::HI) != 0
-    }
+#[inline(always)]
+pub(crate) fn simd_eq<T: Wide>(a: Packed, b: Packed) -> Packed {
+    let xor = a ^ b;
+    xor.wrapping_sub(<T as Pack>::LO) & !xor & <T as Pack>::HI
 }
