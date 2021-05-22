@@ -25,6 +25,10 @@ pub fn all(c: &mut Criterion) {
             });
         };
     }
+    #[cfg(target_arch = "x86_64")]
+    {
+        def!("x86_64", count::x86_64);
+    }
     def!("fallback", count::fallback);
     def!("naive", count::naive);
 }

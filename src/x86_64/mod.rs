@@ -1,7 +1,15 @@
+use crate::char::{KernelFn, Wide};
+
 mod avx2;
 #[cfg(feature = "unstable")]
 mod evex;
 mod sse2;
+
+// TODO: Documentation.
+#[inline(always)]
+pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
+    T::wmemchr_x86_64(needle, haystack)
+}
 
 macro_rules! unsafe_ifuncs {
     ($(
@@ -37,7 +45,6 @@ macro_rules! unsafe_ifuncs {
                                 return super::evex::$ty::$name as FnRaw;
                             }
                         }
-
                         super::avx2::$ty::$name as FnRaw
                     } else {
                         // SSE2 is supported for all for x86_64 processors.
@@ -72,4 +79,43 @@ macro_rules! unsafe_ifuncs {
 
 unsafe_ifuncs! {
     fn i16::wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<usize>;
+    fn i32::wmemchr(needle: i32, haystack: *const i32, len: usize) -> Option<usize>;
+}
+
+pub(crate) struct Kernel;
+
+impl KernelFn<u16> for Kernel {
+    fn kernel(needle: u16, haystack: &[u16]) -> Option<usize> {
+        unsafe {
+            i16::wmemchr(
+                needle as i16,
+                haystack.as_ptr() as *const i16,
+                haystack.len(),
+            )
+        }
+    }
+}
+
+impl KernelFn<i16> for Kernel {
+    fn kernel(needle: i16, haystack: &[i16]) -> Option<usize> {
+        unsafe { i16::wmemchr(needle, haystack.as_ptr(), haystack.len()) }
+    }
+}
+
+impl KernelFn<u32> for Kernel {
+    fn kernel(needle: u32, haystack: &[u32]) -> Option<usize> {
+        unsafe {
+            i32::wmemchr(
+                needle as i32,
+                haystack.as_ptr() as *const i32,
+                haystack.len(),
+            )
+        }
+    }
+}
+
+impl KernelFn<i32> for Kernel {
+    fn kernel(needle: i32, haystack: &[i32]) -> Option<usize> {
+        unsafe { i32::wmemchr(needle, haystack.as_ptr(), haystack.len()) }
+    }
 }

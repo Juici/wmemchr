@@ -2,16 +2,16 @@ use core::arch::x86_64::*;
 use core::mem;
 use core::num::NonZeroI32;
 
-const VECTOR_SIZE: usize = mem::size_of::<__m128i>() / mem::size_of::<i16>();
+const VECTOR_SIZE: usize = mem::size_of::<__m128i>() / mem::size_of::<i32>();
 const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
 
 // 64 byte loop.
 const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
 
-static_assert!(LOOP_SIZE * mem::size_of::<i16>() == 64);
+static_assert!(LOOP_SIZE * mem::size_of::<i32>() == 64);
 
 #[target_feature(enable = "sse2")]
-pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<usize> {
+pub unsafe fn wmemchr(needle: i32, haystack: *const i32, len: usize) -> Option<usize> {
     let start = haystack;
     let end = haystack.add(len);
     let mut ptr = start;
@@ -33,7 +33,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
     debug_assert!(start <= end.sub(VECTOR_SIZE));
 
     // Broadcast the needle across the elements of the vector.
-    let v_needle = _mm_set1_epi16(needle);
+    let v_needle = _mm_set1_epi32(needle);
 
     if let Some(pos) = forward_search_unaligned(start, end, ptr, v_needle) {
         return Some(pos);
@@ -41,7 +41,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 
     // Align `ptr` to improve read performance in loop.
     // This calculation is based on byte pointer, and not the scaled addition.
-    ptr = (start as *const u8).add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN)) as *const i16;
+    ptr = (start as *const u8).add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN)) as *const i32;
 
     debug_assert!(start < ptr);
 
@@ -58,10 +58,10 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
         let d = _mm_load_si128(p.add(3));
 
         // Look for needle in vectors.
-        let eq_a = _mm_cmpeq_epi16(a, v_needle);
-        let eq_b = _mm_cmpeq_epi16(b, v_needle);
-        let eq_c = _mm_cmpeq_epi16(c, v_needle);
-        let eq_d = _mm_cmpeq_epi16(d, v_needle);
+        let eq_a = _mm_cmpeq_epi32(a, v_needle);
+        let eq_b = _mm_cmpeq_epi32(b, v_needle);
+        let eq_c = _mm_cmpeq_epi32(c, v_needle);
+        let eq_d = _mm_cmpeq_epi32(d, v_needle);
 
         // Determine if any vectors contained the needle.
         let or_ab = _mm_or_si128(eq_a, eq_b);
@@ -105,7 +105,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
         debug_assert_eq!((ptr as usize) % VECTOR_SIZE, 0);
 
         let chunk = _mm_load_si128(ptr as *const __m128i);
-        let eq = _mm_cmpeq_epi16(chunk, v_needle);
+        let eq = _mm_cmpeq_epi32(chunk, v_needle);
 
         let mask = _mm_movemask_epi8(eq);
         if let Some(mask) = NonZeroI32::new(mask) {
@@ -137,16 +137,16 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 #[inline]
 #[target_feature(enable = "sse2")]
 unsafe fn forward_search_unaligned(
-    start: *const i16,
-    end: *const i16,
-    ptr: *const i16,
+    start: *const i32,
+    end: *const i32,
+    ptr: *const i32,
     v_needle: __m128i,
 ) -> Option<usize> {
     debug_assert!(start <= ptr);
     debug_assert!(ptr <= end.sub(VECTOR_SIZE));
 
     let chunk = _mm_loadu_si128(ptr as *const __m128i);
-    let eq = _mm_cmpeq_epi16(chunk, v_needle);
+    let eq = _mm_cmpeq_epi32(chunk, v_needle);
 
     let mask = _mm_movemask_epi8(eq);
     if let Some(mask) = NonZeroI32::new(mask) {
@@ -159,11 +159,11 @@ unsafe fn forward_search_unaligned(
 
 /// Get the forward position in a mask obtained from `_mm_movemask_epi8`.
 ///
-/// Unfortunately no `_mm_movemask_epi16` function exists, and we cannot use
-/// `_mm_cmpeq_epi16_mask` on without AVX512VL + AVX512BW.
+/// Unfortunately no `_mm_movemask_epi32` function exists, and we cannot use
+/// `_mm_cmpeq_epi32_mask` on without AVX512VL + AVX512BW.
 ///
 /// So we will make use of `_mm_movemask_epi8` and use trailing zeros to get
-/// the offset of the match, then divide that by 2 to get the real position.
+/// the offset of the match, then divide that by 4 to get the real position.
 ///
 /// # Notes
 ///
@@ -171,5 +171,5 @@ unsafe fn forward_search_unaligned(
 /// to optimise this function.
 #[inline(always)]
 pub fn forward_pos(mask: NonZeroI32) -> usize {
-    (bsf!(mask) as usize) >> 1
+    (bsf!(mask) as usize) >> 2
 }

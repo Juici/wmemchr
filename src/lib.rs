@@ -9,7 +9,6 @@ extern crate std_detect;
 mod macros;
 
 mod char;
-mod kernel;
 
 pub mod fallback;
 pub mod naive;

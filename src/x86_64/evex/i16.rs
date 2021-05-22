@@ -8,7 +8,6 @@ const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
 const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
 
 const SMALL_VECTOR_SIZE: usize = mem::size_of::<__m128i>() / mem::size_of::<i16>();
-const SMALL_VECTOR_ALIGN: usize = SMALL_VECTOR_SIZE - 1;
 
 // Use a macro instead of a function, since the mask type can vary.
 macro_rules! forward_pos {
@@ -43,7 +42,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
 
     // Align `ptr` to improve read performance in loop.
     // This calculation is based on byte pointer, and not the scaled addition.
-    ptr = (ptr as *const u8).add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN)) as *const i16;
+    ptr = (start as *const u8).add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN)) as *const i16;
 
     debug_assert!(start < ptr);
 
@@ -109,11 +108,11 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
     // unaligned forward search.
 
     if ptr < end {
-        let remaining = end.offset_from(start) as usize;
+        let remaining = end.offset_from(ptr) as usize;
 
         debug_assert!(remaining < VECTOR_SIZE);
         ptr = ptr.sub(VECTOR_SIZE - remaining);
-        debug_assert_eq!(end.offset_from(start) as usize, VECTOR_SIZE);
+        debug_assert_eq!(end.offset_from(ptr) as usize, VECTOR_SIZE);
 
         return forward_search_unaligned(start, end, ptr, v_needle);
     }
