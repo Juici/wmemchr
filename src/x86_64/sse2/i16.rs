@@ -40,9 +40,10 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
     }
 
     // Align `ptr` to improve read performance in loop.
-    ptr = ptr.add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN));
+    // This calculation is based on byte pointer, and not the scaled addition.
+    ptr = (ptr as *const u8).add(VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN)) as *const i16;
 
-    debug_assert!(start <= ptr);
+    debug_assert!(start < ptr);
 
     // 64 byte (32 element) loop.
     while ptr <= end.sub(LOOP_SIZE) {
