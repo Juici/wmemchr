@@ -63,10 +63,8 @@ macro_rules! unsafe_ifuncs {
                 //         pointer, which is always safe to transmute with `*mut ()`.
                 //         Also, if `f` is the AVX2 routine, then it is guaranteed to be
                 //         supported since we checked the `avx2` feature.
-                unsafe {
-                    let f = FN.load(Ordering::Relaxed);
-                    (mem::transmute::<FnRaw, $fn_ty>(f))($($arg),*)
-                }
+                let f = FN.load(Ordering::Relaxed);
+                (mem::transmute::<FnRaw, $fn_ty>(f))($($arg),*)
             }
         }
     }
