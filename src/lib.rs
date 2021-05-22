@@ -16,3 +16,15 @@ pub mod naive;
 pub mod x86_64;
 
 pub use crate::char::Wide;
+
+// TODO: Documentation.
+#[inline]
+pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "x86_64")] {
+            x86_64::wmemchr(needle, haystack)
+        } else {
+            fallback::wmemchr(needle, haystack)
+        }
+    }
+}
