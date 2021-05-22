@@ -22,7 +22,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
     let start = haystack;
     let end = haystack.add(len);
 
-    debug_assert!(start < end);
+    debug_assert!(start <= end);
 
     // If haystack length is less than number of elements in a packed vector,
     // then try with a smaller vector.

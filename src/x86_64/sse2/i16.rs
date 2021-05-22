@@ -16,7 +16,7 @@ pub unsafe fn wmemchr(needle: i16, haystack: *const i16, len: usize) -> Option<u
     let end = haystack.add(len);
     let mut ptr = start;
 
-    debug_assert!(start < end);
+    debug_assert!(start <= end);
 
     // If haystack length is less than number of elements in a packed vector,
     // then do a simple forward search.
