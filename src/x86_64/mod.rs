@@ -15,6 +15,9 @@ mod sse2;
 /// Basic usage:
 ///
 /// ```
+/// # fn main() {
+/// # #[cfg(not(miri))]
+/// # {
 /// use wchar::wch;
 /// use wmemchr::x86_64::wmemchr;
 ///
@@ -22,6 +25,8 @@ mod sse2;
 ///
 /// assert_eq!(wmemchr(wch!(u16, 'o'), haystack), Some(1));
 /// assert_eq!(wmemchr(wch!(u16, 'z'), haystack), None);
+/// # }
+/// # }
 /// ```
 #[inline(always)]
 pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
