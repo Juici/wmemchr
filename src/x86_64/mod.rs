@@ -1,3 +1,5 @@
+//! Optimised implementation for x86_64 platforms.
+
 use crate::char::{KernelFn, Wide};
 
 mod avx2;
@@ -5,7 +7,22 @@ mod avx2;
 mod evex;
 mod sse2;
 
-// TODO: Documentation.
+/// Returns the index of the first occurrence of a wide character in a slice,
+/// or [`None`] if the character is not found.
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```
+/// use wchar::wch;
+/// use wmemchr::x86_64::wmemchr;
+///
+/// let haystack = wch!(u16, "foo bar");
+///
+/// assert_eq!(wmemchr(wch!(u16, 'o'), haystack), Some(1));
+/// assert_eq!(wmemchr(wch!(u16, 'z'), haystack), None);
+/// ```
 #[inline(always)]
 pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
     T::wmemchr_x86_64(needle, haystack)

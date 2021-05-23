@@ -1,10 +1,27 @@
+//! Pure Rust platform independent implementation designed for speed.
+
 use crate::char::{KernelFn, Wide};
 
 mod packed;
 
 use self::packed::{simd_eq, NonZeroPacked, Pack, Packed};
 
-// TODO: Documentation.
+/// Returns the index of the first occurrence of a wide character in a slice,
+/// or [`None`] if the character is not found.
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```
+/// use wchar::wch;
+/// use wmemchr::fallback::wmemchr;
+///
+/// let haystack = wch!(u16, "foo bar");
+///
+/// assert_eq!(wmemchr(wch!(u16, 'o'), haystack), Some(1));
+/// assert_eq!(wmemchr(wch!(u16, 'z'), haystack), None);
+/// ```
 #[inline(always)]
 pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
     T::wmemchr_fallback(needle, haystack)
