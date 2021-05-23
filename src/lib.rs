@@ -33,7 +33,7 @@ mod char;
 pub mod fallback;
 pub mod naive;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(not(miri), target_arch = "x86_64"))]
 pub mod x86_64;
 
 pub use crate::char::Wide;
@@ -57,7 +57,9 @@ pub use crate::char::Wide;
 #[inline]
 pub fn wmemchr<T: Wide>(needle: T, haystack: &[T]) -> Option<usize> {
     cfg_if::cfg_if! {
-        if #[cfg(target_arch = "x86_64")] {
+        if #[cfg(miri)] {
+            fallback::wmemchr(needle, haystack)
+        } else if #[cfg(target_arch = "x86_64")] {
             x86_64::wmemchr(needle, haystack)
         } else {
             fallback::wmemchr(needle, haystack)

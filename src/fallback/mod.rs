@@ -1,5 +1,7 @@
 //! Pure Rust platform independent implementation designed for speed.
 
+use core::mem;
+
 use crate::char::{KernelFn, Wide};
 
 mod packed;
@@ -31,8 +33,11 @@ pub(crate) struct Kernel;
 
 impl<T: Pack> KernelFn<T> for Kernel {
     fn kernel(needle: T, haystack: &[T]) -> Option<usize> {
-        let loop_size = 4 * T::LANES;
-        let align = T::LANES - 1;
+        const VECTOR_SIZE: usize = mem::size_of::<Packed>();
+        const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
+
+        const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
+        let loop_elements = 4 * T::LANES;
 
         let start = haystack.as_ptr();
         let mut ptr = start;
@@ -64,72 +69,79 @@ impl<T: Pack> KernelFn<T> for Kernel {
 
             // Align `ptr` to improve read performance in loop.
             // This calculation is based on byte pointer, and not the scaled addition.
-            ptr = (ptr as *const u8).add(T::LANES - ((start as usize) & align)) as *const T;
+            ptr = {
+                let align_offset = VECTOR_SIZE - ((start as usize) & VECTOR_ALIGN);
+                (start as *const u8).add(align_offset) as *const T
+            };
 
             debug_assert!(start < ptr);
 
-            while ptr <= end.sub(loop_size) {
-                debug_assert_eq!((ptr as usize) % T::LANES, 0);
+            if let Some(loop_end) = (end as usize).checked_sub(LOOP_SIZE) {
+                while (ptr as usize) <= loop_end {
+                    debug_assert_eq!((ptr as usize) % VECTOR_SIZE, 0);
 
-                let p = ptr as *const Packed;
+                    let p = ptr as *const Packed;
 
-                // Load 4 vectors of characters.
-                let a = *p;
-                let b = *p.add(1);
-                let c = *p.add(2);
-                let d = *p.add(3);
+                    // Load 4 vectors of characters.
+                    let a = *p;
+                    let b = *p.add(1);
+                    let c = *p.add(2);
+                    let d = *p.add(3);
 
-                // Look for needle in vectors.
-                let eq_a = simd_eq::<T>(a, v_needle);
-                let eq_b = simd_eq::<T>(b, v_needle);
-                let eq_c = simd_eq::<T>(c, v_needle);
-                let eq_d = simd_eq::<T>(d, v_needle);
+                    // Look for needle in vectors.
+                    let eq_a = simd_eq::<T>(a, v_needle);
+                    let eq_b = simd_eq::<T>(b, v_needle);
+                    let eq_c = simd_eq::<T>(c, v_needle);
+                    let eq_d = simd_eq::<T>(d, v_needle);
 
-                // Determine if any vectors contained the needle.
-                let or_ab = eq_a | eq_b;
-                let or_cd = eq_c | eq_d;
-                let or = or_ab | or_cd;
+                    // Determine if any vectors contained the needle.
+                    let or_ab = eq_a | eq_b;
+                    let or_cd = eq_c | eq_d;
+                    let or = or_ab | or_cd;
 
-                // If any vector contains the needle, we will search for it in each vector.
-                if or != 0 {
-                    // Keep track of the offset from the start of the haystack.
-                    let mut offset = ptr.offset_from(start) as usize;
+                    // If any vector contains the needle, we will search for it in each vector.
+                    if or != 0 {
+                        // Keep track of the offset from the start of the haystack.
+                        let mut offset = ptr.offset_from(start) as usize;
 
-                    if let Some(mask) = NonZeroPacked::new(eq_a) {
+                        if let Some(mask) = NonZeroPacked::new(eq_a) {
+                            return Some(offset + forward_pos::<T>(mask));
+                        }
+                        offset += T::LANES;
+
+                        if let Some(mask) = NonZeroPacked::new(eq_b) {
+                            return Some(offset + forward_pos::<T>(mask));
+                        }
+                        offset += T::LANES;
+
+                        if let Some(mask) = NonZeroPacked::new(eq_c) {
+                            return Some(offset + forward_pos::<T>(mask));
+                        }
+                        offset += T::LANES;
+
+                        debug_assert_ne!(eq_d, 0);
+                        let mask = NonZeroPacked::new_unchecked(eq_d);
                         return Some(offset + forward_pos::<T>(mask));
                     }
-                    offset += T::LANES;
 
-                    if let Some(mask) = NonZeroPacked::new(eq_b) {
-                        return Some(offset + forward_pos::<T>(mask));
-                    }
-                    offset += T::LANES;
-
-                    if let Some(mask) = NonZeroPacked::new(eq_c) {
-                        return Some(offset + forward_pos::<T>(mask));
-                    }
-                    offset += T::LANES;
-
-                    debug_assert_ne!(eq_d, 0);
-                    let mask = NonZeroPacked::new_unchecked(eq_d);
-                    return Some(offset + forward_pos::<T>(mask));
+                    ptr = ptr.add(loop_elements);
                 }
-
-                ptr = ptr.add(loop_size);
             }
 
-            while ptr <= end.sub(T::LANES) {
-                debug_assert_eq!((ptr as usize) % T::LANES, 0);
+            if let Some(loop_end) = (end as usize).checked_sub(VECTOR_SIZE) {
+                while (ptr as usize) <= loop_end {
+                    debug_assert_eq!((ptr as usize) % VECTOR_SIZE, 0);
 
-                let chunk = *(ptr as *const Packed);
-                let eq = simd_eq::<T>(chunk, v_needle);
+                    let chunk = *(ptr as *const Packed);
+                    let eq = simd_eq::<T>(chunk, v_needle);
 
-                if let Some(mask) = NonZeroPacked::new(eq) {
-                    let offset = ptr.offset_from(start) as usize;
-                    return Some(offset + forward_pos::<T>(mask));
+                    if let Some(mask) = NonZeroPacked::new(eq) {
+                        let offset = ptr.offset_from(start) as usize;
+                        return Some(offset + forward_pos::<T>(mask));
+                    }
+
+                    ptr = ptr.add(T::LANES);
                 }
-
-                ptr = ptr.add(T::LANES);
             }
 
             // Invariant: `0 <= end - ptr < T::LANES`.

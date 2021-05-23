@@ -1,3 +1,5 @@
+#![allow(unused_macros)]
+
 /// Assert a condition at compile time.
 macro_rules! static_assert {
     ($cond:expr) => {
