@@ -58,7 +58,7 @@ impl<T: Pack> KernelFn<T> for Kernel {
                 }
             }
 
-            debug_assert!(end.offset_from(start) as usize <= T::LANES);
+            debug_assert!(end.offset_from(start) as usize >= T::LANES);
 
             // Broadcast the needle across the elements of the vector.
             let v_needle = needle.broadcast();
@@ -74,6 +74,8 @@ impl<T: Pack> KernelFn<T> for Kernel {
                 (start as *const u8).add(align_offset) as *const T
             };
 
+            // The pointer will advance at least one element and at most by the
+            // number of elements in one vector.
             debug_assert!(start < ptr);
             debug_assert!(ptr.offset_from(start) as usize <= T::LANES);
 
@@ -173,7 +175,7 @@ unsafe fn forward_search_unaligned<T: Pack>(
     v_needle: Packed,
 ) -> Option<usize> {
     debug_assert!(start <= ptr);
-    debug_assert!(end.offset_from(ptr) as usize <= T::LANES);
+    debug_assert!(end.offset_from(ptr) as usize >= T::LANES);
 
     let chunk = (ptr as *const Packed).read_unaligned();
     let eq = simd_eq::<T>(chunk, v_needle);
