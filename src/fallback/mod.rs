@@ -56,6 +56,7 @@ impl<T: Pack> KernelFn<T> for Kernel {
                     }
                     ptr = ptr.add(1);
                 }
+                return None;
             }
 
             debug_assert!(end.offset_from(start) as usize >= T::LANES);
