@@ -45,14 +45,7 @@ macro_rules! is_x86_feature_detected {
     };
 }
 /// Test at runtime whether a CPU feature is available on x86/x86_64 platforms.
-#[cfg(all(not(feature = "std"), feature = "unstable"))]
-macro_rules! is_x86_feature_detected {
-    ($feature:tt) => {
-        ::std_detect::is_x86_feature_detected!($feature)
-    };
-}
-/// Test at runtime whether a CPU feature is available on x86/x86_64 platforms.
-#[cfg(not(any(feature = "std", feature = "unstable")))]
+#[cfg(not(feature = "std"))]
 macro_rules! is_x86_feature_detected {
     ($feature:tt) => {
         ::core::cfg!(target_feature = $feature)

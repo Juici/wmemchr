@@ -22,9 +22,6 @@
 #![cfg_attr(feature = "unstable", feature(avx512_target_feature))]
 #![deny(missing_docs)]
 
-#[cfg(feature = "unstable")]
-extern crate std_detect;
-
 #[macro_use]
 mod macros;
 
