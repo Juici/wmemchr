@@ -106,16 +106,16 @@ jobs:
           echo "target flag: ${{ env.TARGET }}"
 
       - name: Build
-        run: ${{ env.CARGO }} build --verbose --workspace ${{ env.TARGET }}
+        run: ${{ env.CARGO }} build --verbose ${{ env.TARGET }}
 
       - name: Build (no_std)
-        run: ${{ env.CARGO }} build --verbose --workspace --no-default-features ${{ env.TARGET }}
+        run: ${{ env.CARGO }} build --verbose --no-default-features ${{ env.TARGET }}
 
       - name: Run tests
-        run: ${{ env.CARGO }} test --verbose --workspace ${{ env.TARGET }}
+        run: ${{ env.CARGO }} test --verbose ${{ env.TARGET }}
 
       - name: Run tests (no_std)
-        run: ${{ env.CARGO }} test --verbose --workspace --no-default-features ${{ env.TARGET }}
+        run: ${{ env.CARGO }} test --verbose --no-default-features ${{ env.TARGET }}
 
   test-miri:
     name: test with miri
@@ -136,10 +136,10 @@ jobs:
           components: miri
 
       - name: Run tests
-        run: cargo miri test --verbose --workspace
+        run: cargo miri test --verbose
 
       - name: Run tests (no_std)
-        run: cargo miri test --verbose --workspace
+        run: cargo miri test --verbose
 
   rustfmt:
     name: rustfmt
