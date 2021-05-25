@@ -5,7 +5,7 @@ use core::num::NonZeroI32;
 const VECTOR_SIZE: usize = mem::size_of::<__m128i>();
 const VECTOR_ALIGN: usize = VECTOR_SIZE - 1;
 
-const VECTOR_ELEMENTS: usize = VECTOR_SIZE / mem::size_of::<i16>();
+const VECTOR_ELEMENTS: usize = VECTOR_SIZE / mem::size_of::<i32>();
 
 const LOOP_SIZE: usize = 4 * VECTOR_SIZE;
 const LOOP_ELEMENTS: usize = 4 * VECTOR_ELEMENTS;
