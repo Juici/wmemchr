@@ -1,16 +1,15 @@
-//! Tests using quickcheck to compare to the naive implementation.
+#![cfg(not(miri))]
 
 macro_rules! tests {
     ($($ty:ident),*) => {
         $(
             mod $ty {
                 use quickcheck::quickcheck;
-
-                use crate::fallback;
-                use crate::naive;
+                use wmemchr::fallback;
+                use wmemchr::naive;
 
                 #[cfg(target_arch = "x86_64")]
-                use crate::x86_64;
+                use wmemchr::x86_64;
 
                 quickcheck! {
                     fn fallback(needle: $ty, haystack: Vec<$ty>) -> bool {

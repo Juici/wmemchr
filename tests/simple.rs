@@ -1,12 +1,9 @@
-//! Simple tests that can be run under Miri.
-
 macro_rules! tests {
     ($($ty:ident),*) => {
         $(
             mod $ty {
                 use wchar::wch;
-
-                use crate::wmemchr;
+                use wmemchr::wmemchr;
 
                 tests! { @ascii $ty }
                 tests! { @complex $ty }

@@ -25,9 +25,6 @@
 #[macro_use]
 mod macros;
 
-#[cfg(test)]
-mod tests;
-
 mod char;
 
 pub mod fallback;
