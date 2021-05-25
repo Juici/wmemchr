@@ -1,6 +1,6 @@
 [package]
 name = "wmemchr"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["James Whaley <juicy66173@gmail.com>"]
 description = "Safe generic alternative to wmemchr."
 edition = "2018"
