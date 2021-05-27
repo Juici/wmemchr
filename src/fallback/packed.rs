@@ -71,6 +71,6 @@ impl_pack!(i32, u32);
 
 #[inline(always)]
 pub fn simd_eq<T: Pack>(a: Packed, b: Packed) -> Packed {
-    let xor = a ^ b;
-    xor.wrapping_sub(<T as Pack>::LO) & !xor & <T as Pack>::HI
+    let xor = (a ^ b).to_le();
+    Packed::from_le(xor.wrapping_sub(<T as Pack>::LO) & !xor & <T as Pack>::HI)
 }

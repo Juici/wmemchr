@@ -17,7 +17,7 @@ macro_rules! bsf {
         match $mask {
             #[cfg(target_endian = "little")]
             mask => mask.trailing_zeros(),
-            #[cfg(target_endian = "big")]
+            #[cfg(not(target_endian = "little"))]
             mask => mask.leading_zeros(),
         }
     };
@@ -31,7 +31,7 @@ macro_rules! bsf {
             0 => unsafe { ::core::hint::unreachable_unchecked() },
             #[cfg(target_endian = "little")]
             mask => mask.trailing_zeros(),
-            #[cfg(target_endian = "big")]
+            #[cfg(not(target_endian = "little"))]
             mask => mask.leading_zeros(),
         }
     };
