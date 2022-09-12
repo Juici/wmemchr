@@ -19,6 +19,6 @@ harness = false
 path = "src/bench.rs"
 
 [dependencies]
-criterion = "0.3.4"
+criterion = "0.4.0"
 wchar = { version = "0.10", features = ["unstable"] }
 wmemchr = { path = ".." }
